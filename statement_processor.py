@@ -38,6 +38,34 @@ def process_positional_args(statement: str, positional_args: List) -> str:
     pattern = r'\$(\d+)'
     return re.sub(pattern, replace_arg, statement)
 
+def process_named_args(statement: str, named_args: dict) -> str:
+    """
+    Process the SQL statement by replacing named placeholders ($keyword) with values from named_args.
+    Example: 
+    - statement: "SELECT * FROM users WHERE name = $name AND age > $age"
+    - named_args: {"$name": "John", "$age": 18}
+    - result: "SELECT * FROM users WHERE name = 'John' AND age > 18"
+    """
+    def replace_arg(match):
+        try:
+            placeholder = match.group(0)  # Get the full match including $ (e.g., "$name")
+            if placeholder in named_args:
+                value = named_args[placeholder]
+                # Wrap string values with single quotes
+                if isinstance(value, str):
+                    return f"'{value}'"
+                return str(value)
+            else:
+                logging.warning(f"Named argument '{placeholder}' not found in provided arguments")
+                return placeholder
+        except Exception as e:
+            logging.error(f"Error processing named argument: {str(e)}")
+            return match.group(0)
+    
+    # Replace all occurrences of $keyword with corresponding named arguments
+    pattern = r'\$\w+'
+    return re.sub(pattern, replace_arg, statement)
+
 def process_json_file(file_path: str) -> List[dict]:
     """
     Read and process the JSON file containing SQL statements and their metadata.
@@ -62,15 +90,23 @@ def process_json_file(file_path: str) -> List[dict]:
             completed_request = item['completed_requests']
             
             # Check if required fields are present
-            if 'statement' not in completed_request or 'positionalArgs' not in completed_request:
-                logging.warning(f"Skipping item missing required fields: {completed_request}")
+            if 'statement' not in completed_request:
+                logging.warning(f"Skipping item missing required statement field: {completed_request}")
                 continue
                 
-            # Process the statement and positional arguments
-            processed_statement = process_positional_args(
-                completed_request['statement'],
-                completed_request.get('positionalArgs', [])
-            )
+            # Process the statement and arguments (positional or named)
+            statement = completed_request['statement']
+            processed_statement = statement.replace('\n', ' ')
+
+            positional_args = completed_request.get('positionalArgs', [])
+            if(len(positional_args) > 0):
+                processed_statement = process_positional_args(
+                    processed_statement, positional_args)
+                
+            named_args = completed_request.get('namedArgs', [])
+            if(len(named_args) > 0):
+                processed_statement = process_named_args(
+                    processed_statement, named_args)
             
             # Create a new item with the processed statement
             processed_item = completed_request.copy()
