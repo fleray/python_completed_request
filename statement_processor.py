@@ -66,7 +66,7 @@ def process_named_args(statement: str, named_args: dict) -> str:
     pattern = r'\$\w+'
     return re.sub(pattern, replace_arg, statement)
 
-def process_json_file(file_path: str) -> List[dict]:
+def process_json_file(file_path: str, use_value_for_parameters: bool) -> List[dict]:
     """
     Read and process the JSON file containing SQL statements and their metadata.
     """
@@ -98,20 +98,21 @@ def process_json_file(file_path: str) -> List[dict]:
             statement = completed_request['statement']
             processed_statement = statement.replace('\n', ' ')
 
-            positional_args = completed_request.get('positionalArgs', [])
-            if(len(positional_args) > 0):
-                processed_statement = process_positional_args(
-                    processed_statement, positional_args)
-                
-            named_args = completed_request.get('namedArgs', [])
-            if(len(named_args) > 0):
-                processed_statement = process_named_args(
-                    processed_statement, named_args)
+            if(use_value_for_parameters):
+                positional_args = completed_request.get('positionalArgs', [])
+                if(len(positional_args) > 0):
+                    processed_statement = process_positional_args(
+                        processed_statement, positional_args)
+                    
+                named_args = completed_request.get('namedArgs', [])
+                if(len(named_args) > 0):
+                    processed_statement = process_named_args(
+                        processed_statement, named_args)
             
             # Create a new item with the processed statement
             processed_item = completed_request.copy()
             processed_item['statement'] = processed_statement
-            
+
             processed_items.append(processed_item)
             
         return processed_items
@@ -132,6 +133,8 @@ def convert_to_excel_value(value):
     """
     if isinstance(value, (dict, list)):
         return json.dumps(value)
+    if isinstance(value, str):
+        value = value.replace('µs', 'us')
     return value
 
 def convert_to_seconds(time_str):
@@ -153,30 +156,15 @@ def convert_to_seconds(time_str):
     except (ValueError, TypeError):
         return 0
 
-def main():
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description='Process computed request statements from a JSON file and generate Excel report to help identify better slow queries.')
-    parser.add_argument('input_file', help='Path to the input JSON file (output from computed request)')
-    args = parser.parse_args()
+def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str) -> None:
+    """
+    Create and populate Excel sheets with processed data.
     
-    # Process the JSON file
-    processed_items = process_json_file(args.input_file)
-    
-    if not processed_items:
-        logging.error("No items to process")
-        return
-        
-    # Create output filename
-    input_filename = os.path.splitext(os.path.basename(args.input_file))[0]
-    output_file = f"output_{input_filename}.xlsx"
-    
-    # Create a new workbook
-    wb = Workbook()
-    
-    # Create and setup the first sheet (Raw Results)
-    ws_raw = wb.active
-    ws_raw.title = "Raw Results"
-    
+    Args:
+        wb: Workbook object
+        processed_items: List of processed items
+        sheet_title: Title prefix for the sheets (e.g., "Raw" or "Aggregated")
+    """
     # Define headers in the specified order
     headers = [
         'requestTime', 'statement', 'elapsedTime', 'cpuTime', 'resultCount',
@@ -190,6 +178,9 @@ def main():
     # Style for headers
     header_font = Font(bold=True)
     header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+    
+    # Create and setup the first sheet (Raw Results)
+    ws_raw = wb.active if sheet_title == "Raw" else wb.create_sheet(title=f"{sheet_title} Queries")
     
     # Write headers with styling
     for col_idx, header in enumerate(headers, 1):
@@ -205,7 +196,7 @@ def main():
             ws_raw.cell(row=row_idx, column=col_idx, value=value)
     
     # Create and setup the second sheet (Aggregated Results)
-    ws_agg = wb.create_sheet(title="Aggregated Results")
+    ws_agg = wb.create_sheet(title=f"{sheet_title} Queries (Aggregated)")
     
     # Define headers for aggregated sheet
     agg_headers = [
@@ -247,7 +238,7 @@ def main():
     # Sort statement_groups by total elapsedTime in descending order
     sorted_groups = sorted(
         statement_groups.items(),
-        key=lambda x: sum(x[1]['elapsedTime']),  # Sort by total elapsed time
+        key=lambda x: sum(x[1]['elapsedTime']),
         reverse=True
     )
     
@@ -256,7 +247,7 @@ def main():
         ws_agg.cell(row=row_idx, column=1, value=group['requestTime'])
         ws_agg.cell(row=row_idx, column=2, value=group['statement'])
         ws_agg.cell(row=row_idx, column=3, value=sum(group['elapsedTime']) / len(group['elapsedTime']))
-        ws_agg.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))  # Total elapsed time
+        ws_agg.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))
         ws_agg.cell(row=row_idx, column=5, value=sum(group['cpuTime']) / len(group['cpuTime']))
         ws_agg.cell(row=row_idx, column=6, value=sum(group['resultCount']) / len(group['resultCount']))
         ws_agg.cell(row=row_idx, column=7, value=sum(group['resultSize']) / len(group['resultSize']))
@@ -264,11 +255,10 @@ def main():
         ws_agg.cell(row=row_idx, column=9, value=group['count'])
 
     # Add color gradient to TOTAL elapsedTime column
-    total_elapsed_col = 4  # Column D
     color_scale_rule = ColorScaleRule(
-        start_type='min', start_color='FFFF00',  # Yellow for lowest
-        mid_type='percentile', mid_value=50, mid_color='FFA500',  # Orange for median
-        end_type='max', end_color='FF0000'  # Red for highest
+        start_type='min', start_color='FFFF00',
+        mid_type='percentile', mid_value=50, mid_color='FFA500',
+        end_type='max', end_color='FF0000'
     )
     ws_agg.conditional_formatting.add(
         f'D2:D{ws_agg.max_row}',
@@ -283,6 +273,36 @@ def main():
                 if row[0].value:
                     max_length = max(max_length, len(str(row[0].value)))
             ws.column_dimensions[chr(64 + col_idx)].width = min(max_length + 2, 100)
+
+def main():
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Process computed request statements from a JSON file and generate Excel report to help identify better slow queries.')
+    parser.add_argument('input_file', help='Path to the input JSON file (output from computed request)')
+    args = parser.parse_args()
+    
+    # Process the JSON file
+    processed_items = process_json_file(args.input_file, False)
+    
+    if not processed_items:
+        logging.error("No items to process")
+        return
+        
+    # Create output filename
+    input_filename = os.path.splitext(os.path.basename(args.input_file))[0]
+    output_file = f"output_{input_filename}.xlsx"
+    
+    # Create a new workbook and remove the default sheet
+    wb = Workbook()
+    wb.remove(wb.active)  # Remove the default empty sheet
+    
+    # Create sheets for parametrized results
+    create_excel_sheets(wb, processed_items, "Param.")
+    
+    # Process the JSON file with parameter replacement
+    processed_items = process_json_file(args.input_file, True)
+    
+    # Create sheets for valued results
+    create_excel_sheets(wb, processed_items, "Valued")
     
     # Save the workbook
     wb.save(output_file)
