@@ -24,5 +24,5 @@ Save result as foo.json
 Then run:
 
 ```
-python statement_processor.py foo.json
+python statement_processor.py travel.json
 ```
