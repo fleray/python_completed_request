@@ -24,5 +24,11 @@ Save result as travel.json
 Then run:
 
 ```
-python statement_processor.py travel.json
+python statement_processor.py <YOUR_FILE>.json
 ```
+
+The result is stored in "output_<YOUR_FILE>.xlsx" file containing 4 tabs:
+ - Param. Queries
+ - Param. Queries (Aggregated)
+ - Valued Queries - the parameters are replaced by the associated "Named" or "Positional" parameter value
+ - Valued Queries (Aggregated)
