@@ -1,0 +1,617 @@
+[
+  {
+    "clientContextID": "3c625d54-0112-4c21-b62f-18ae2adc919a",
+    "cpuTime": "526.503µs",
+    "elapsedTime": "18.737125ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "United Kingdom"
+    },
+    "phaseCounts": {
+      "fetch": 2,
+      "filter": 2,
+      "indexScan": 14,
+      "indexScan.GSI": 14,
+      "sort": 5
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "indexScan": 1,
+      "indexScan.GSI": 1,
+      "join": 1,
+      "project": 1,
+      "sort": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "4.792µs",
+      "fetch": "442.5µs",
+      "filter": "25.793µs",
+      "indexScan": "5.678665ms",
+      "indexScan.GSI": "5.678665ms",
+      "instantiate": "705.125µs",
+      "join": "2.655792ms",
+      "parse": "474.333µs",
+      "plan": "8.153875ms",
+      "plan.index.metadata": "1.235583ms",
+      "plan.keyspace.metadata": "2.083µs",
+      "project": "19.668µs",
+      "run": "9.325583ms",
+      "sort": "50.956µs",
+      "stream": "77.875µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:54374",
+    "requestId": "18ab1e9b-7593-4eed-8509-d76f333fc95e",
+    "requestTime": "2025-05-28T02:19:22.828+02:00",
+    "resultCount": 5,
+    "resultSize": 970,
+    "scanConsistency": "unbounded",
+    "serviceTime": "18.673083ms",
+    "state": "completed",
+    "statement": "SELECT a.name,\n       s.flight,\n       s.utc,\n       r.sourceairport,\n       r.destinationairport,\n       r.equipment\nFROM `travel-sample`.inventory.route r\nUNNEST r.schedule s\n    JOIN `travel-sample`.inventory.airline a ON KEYS r.airlineid\nWHERE r.sourceairport='SEA'\n    AND r.destinationairport='MCO'\n    AND s.day=6\nORDER BY a.name",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "da260914-bc64-47bd-926c-8ec0d8beef11",
+    "cpuTime": "1.10525ms",
+    "elapsedTime": "4.693ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "United Kingdom"
+    },
+    "phaseCounts": {
+      "fetch": 15,
+      "filter": 15,
+      "indexScan": 15,
+      "indexScan.GSI": 15
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "indexScan": 1,
+      "indexScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "2.166µs",
+      "fetch": "2.02167ms",
+      "filter": "183.915µs",
+      "indexScan": "1.742374ms",
+      "indexScan.GSI": "1.742374ms",
+      "instantiate": "65.916µs",
+      "parse": "202.959µs",
+      "plan": "97.584µs",
+      "plan.index.metadata": "6.667µs",
+      "plan.keyspace.metadata": "1.416µs",
+      "project": "22.42µs",
+      "run": "4.28625ms",
+      "stream": "749.497µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:46460",
+    "requestId": "0ced8538-dab6-4201-b406-0a2e94ee615d",
+    "requestTime": "2025-05-28T01:42:59.292+02:00",
+    "resultCount": 15,
+    "resultSize": 109321,
+    "scanConsistency": "unbounded",
+    "serviceTime": "4.657834ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = 'United Kingdom'\nLIMIT 15",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "f1b826ce-4afe-4a14-b75c-fba6d318c8db",
+    "cpuTime": "2.966207ms",
+    "elapsedTime": "11.969708ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "United Kingdom"
+    },
+    "phaseCounts": {
+      "fetch": 10,
+      "filter": 10,
+      "indexScan": 10,
+      "indexScan.GSI": 10
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "indexScan": 1,
+      "indexScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "9.666µs",
+      "fetch": "3.460791ms",
+      "filter": "150.664µs",
+      "indexScan": "5.657541ms",
+      "indexScan.GSI": "5.657541ms",
+      "instantiate": "173.667µs",
+      "parse": "589.333µs",
+      "plan": "590.041µs",
+      "plan.index.metadata": "17.625µs",
+      "plan.keyspace.metadata": "3.333µs",
+      "project": "26.793µs",
+      "run": "10.527291ms",
+      "stream": "2.55425ms"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:41820",
+    "requestId": "164c0881-65b8-42e6-8d94-50aae97132c6",
+    "requestTime": "2025-05-28T01:39:39.735+02:00",
+    "resultCount": 10,
+    "resultSize": 76094,
+    "scanConsistency": "unbounded",
+    "serviceTime": "11.897666ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = 'United Kingdom'\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "32299e1b-1156-4816-ab69-04fbee6ab79a",
+    "cpuTime": "980.185µs",
+    "elapsedTime": "8.840542ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "United Kingdom"
+    },
+    "phaseCounts": {
+      "fetch": 21,
+      "filter": 14,
+      "primaryScan": 535,
+      "primaryScan.GSI": 535
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "5.208µs",
+      "fetch": "3.498793ms",
+      "filter": "115.087µs",
+      "instantiate": "63.458µs",
+      "parse": "291.583µs",
+      "plan": "584.75µs",
+      "plan.index.metadata": "222.583µs",
+      "plan.keyspace.metadata": "1.834µs",
+      "primaryScan": "4.195627ms",
+      "primaryScan.GSI": "4.195627ms",
+      "project": "15.288µs",
+      "run": "7.839083ms",
+      "stream": "488.292µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:41820",
+    "requestId": "c08946f9-8106-4448-977d-3d5de66704e0",
+    "requestTime": "2025-05-28T01:36:35.903+02:00",
+    "resultCount": 10,
+    "resultSize": 76094,
+    "scanConsistency": "unbounded",
+    "serviceTime": "8.787333ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = 'United Kingdom'\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "3e3efbb0-3c98-4198-b8f1-2fb4e7cb4cd8",
+    "cpuTime": "2.029886ms",
+    "elapsedTime": "18.705209ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "United Kingdom"
+    },
+    "phaseCounts": {
+      "fetch": 516,
+      "filter": 16,
+      "primaryScan": 825,
+      "primaryScan.GSI": 825
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "4.292µs",
+      "fetch": "4.799239ms",
+      "filter": "237.959µs",
+      "instantiate": "32µs",
+      "parse": "292.792µs",
+      "plan": "276.458µs",
+      "plan.index.metadata": "20.583µs",
+      "plan.keyspace.metadata": "4.25µs",
+      "primaryScan": "16.303153ms",
+      "primaryScan.GSI": "16.303153ms",
+      "project": "237µs",
+      "run": "18.011459ms",
+      "stream": "537.875µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:46460",
+    "requestId": "2eac1211-726e-430f-9345-37e0e6a8e922",
+    "requestTime": "2025-05-28T00:54:51.486+02:00",
+    "resultCount": 10,
+    "resultSize": 76094,
+    "scanConsistency": "unbounded",
+    "serviceTime": "18.622375ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = $country\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "455fa9e5-fcd0-4d9e-8d6a-2b7da8995437",
+    "cpuTime": "6.262624ms",
+    "elapsedTime": "30.020875ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "Spain"
+    },
+    "phaseCounts": {
+      "fetch": 917,
+      "primaryScan": 917,
+      "primaryScan.GSI": 917
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "3.999µs",
+      "fetch": "23.710686ms",
+      "filter": "4.530239ms",
+      "instantiate": "19.125µs",
+      "parse": "207.125µs",
+      "plan": "165.334µs",
+      "plan.index.metadata": "13.416µs",
+      "plan.keyspace.metadata": "4.166µs",
+      "primaryScan": "4.25398ms",
+      "primaryScan.GSI": "4.25398ms",
+      "project": "2.292µs",
+      "run": "29.563083ms",
+      "stream": "750ns"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:45766",
+    "requestId": "d2943016-3acd-43af-9558-5a54ebdaaf08",
+    "requestTime": "2025-05-28T00:54:34.491+02:00",
+    "resultCount": 0,
+    "resultSize": 0,
+    "scanConsistency": "unbounded",
+    "serviceTime": "29.965917ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = $country\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "06f3de3f-f9a1-45bf-a16f-6130ae20b3d8",
+    "cpuTime": "5.582324ms",
+    "elapsedTime": "99.208959ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "Italy"
+    },
+    "phaseCounts": {
+      "fetch": 917,
+      "primaryScan": 917,
+      "primaryScan.GSI": 917
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "8.042µs",
+      "fetch": "71.33289ms",
+      "filter": "3.974622ms",
+      "instantiate": "140.042µs",
+      "parse": "1.521792ms",
+      "plan": "5.319333ms",
+      "plan.index.metadata": "4.684625ms",
+      "plan.keyspace.metadata": "29.958µs",
+      "primaryScan": "19.413686ms",
+      "primaryScan.GSI": "19.413686ms",
+      "project": "4.375µs",
+      "run": "91.986334ms",
+      "stream": "1.083µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:46460",
+    "requestId": "c1d79b49-8700-4d4b-a327-62518b244ad9",
+    "requestTime": "2025-05-28T00:54:23.599+02:00",
+    "resultCount": 0,
+    "resultSize": 0,
+    "scanConsistency": "unbounded",
+    "serviceTime": "98.99125ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = $country\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "9480e85d-0105-414d-bbac-ec2d28c85974",
+    "cpuTime": "5.335292ms",
+    "elapsedTime": "70.576084ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$country": "France"
+    },
+    "phaseCounts": {
+      "fetch": 916,
+      "filter": 11,
+      "primaryScan": 917,
+      "primaryScan.GSI": 917
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "3.625µs",
+      "fetch": "54.209437ms",
+      "filter": "2.322541ms",
+      "instantiate": "96.125µs",
+      "parse": "590.959µs",
+      "plan": "792.208µs",
+      "plan.index.metadata": "109.333µs",
+      "plan.keyspace.metadata": "34.417µs",
+      "primaryScan": "17.926696ms",
+      "primaryScan.GSI": "17.926696ms",
+      "project": "29.92µs",
+      "run": "68.961375ms",
+      "stream": "789.624µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:41820",
+    "requestId": "091f72a6-7343-44cc-85e5-4b46aef1a198",
+    "requestTime": "2025-05-28T00:06:39.722+02:00",
+    "resultCount": 10,
+    "resultSize": 77947,
+    "scanConsistency": "unbounded",
+    "serviceTime": "70.459917ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = $country\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "9c74404c-fe50-43f6-ad91-5f0c1eb419f5",
+    "cpuTime": "2.289869ms",
+    "elapsedTime": "28.088458ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$town": "Paris"
+    },
+    "phaseCounts": {
+      "fetch": 518,
+      "filter": 17,
+      "primaryScan": 586,
+      "primaryScan.GSI": 586
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "filter": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "4.167µs",
+      "fetch": "3.89379ms",
+      "filter": "270.089µs",
+      "instantiate": "73.084µs",
+      "parse": "468.584µs",
+      "plan": "271.042µs",
+      "plan.index.metadata": "18.708µs",
+      "plan.keyspace.metadata": "2.5µs",
+      "primaryScan": "22.81704ms",
+      "primaryScan.GSI": "22.81704ms",
+      "project": "17.919µs",
+      "run": "25.365833ms",
+      "stream": "624.333µs"
+    },
+    "positionalArgs": [
+      "United Kingdom"
+    ],
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:41820",
+    "requestId": "92be7c1c-33ec-4757-8295-dbfff310c84b",
+    "requestTime": "2025-05-28T00:06:15.633+02:00",
+    "resultCount": 10,
+    "resultSize": 76094,
+    "scanConsistency": "unbounded",
+    "serviceTime": "26.206875ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nWHERE country = $1\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "5c6a2e72-68c5-4184-8a1c-9bb3f9e38aca",
+    "cpuTime": "518.841µs",
+    "elapsedTime": "3.097ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {
+      "$town": "Paris"
+    },
+    "phaseCounts": {
+      "fetch": 10,
+      "primaryScan": 10,
+      "primaryScan.GSI": 10
+    },
+    "phaseOperators": {
+      "authorize": 1,
+      "fetch": 1,
+      "primaryScan": 1,
+      "primaryScan.GSI": 1,
+      "project": 1,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "3.25µs",
+      "fetch": "1.039834ms",
+      "instantiate": "168.375µs",
+      "parse": "181.875µs",
+      "plan": "124.75µs",
+      "plan.index.metadata": "11.75µs",
+      "plan.keyspace.metadata": "3.792µs",
+      "primaryScan": "1.242879ms",
+      "primaryScan.GSI": "1.242879ms",
+      "project": "12.999µs",
+      "run": "2.567042ms",
+      "stream": "449.668µs"
+    },
+    "queryContext": "default:travel-sample.inventory",
+    "remoteAddr": "127.0.0.1:46474",
+    "requestId": "f53731df-1f9f-4e24-aa2d-3403692d7142",
+    "requestTime": "2025-05-28T00:03:56.876+02:00",
+    "resultCount": 10,
+    "resultSize": 66572,
+    "scanConsistency": "unbounded",
+    "serviceTime": "3.049667ms",
+    "state": "completed",
+    "statement": "SELECT *\nFROM `hotel`\nLIMIT 10",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  },
+  {
+    "clientContextID": "INTERNAL-712c6a80-d093-49f9-8304-1d38f639fa3a",
+    "cpuTime": "1.0828ms",
+    "elapsedTime": "12.594ms",
+    "errorCount": 0,
+    "errors": [],
+    "n1qlFeatCtrl": 76,
+    "namedArgs": {},
+    "phaseOperators": {
+      "authorize": 1,
+      "count": 5,
+      "project": 6,
+      "stream": 1
+    },
+    "phaseTimes": {
+      "authorize": "29.708µs",
+      "count": "8.375042ms",
+      "instantiate": "68.75µs",
+      "parse": "2.212542ms",
+      "plan": "177.25µs",
+      "project": "727.961µs",
+      "run": "9.886416ms",
+      "stream": "41.626µs"
+    },
+    "remoteAddr": "127.0.0.1:46458",
+    "requestId": "6cbb2bf5-e7de-4240-b463-c16a2560ae7a",
+    "requestTime": "2025-05-28T00:03:40.651+02:00",
+    "resultCount": 1,
+    "resultSize": 222,
+    "scanConsistency": "unbounded",
+    "serviceTime": "12.411833ms",
+    "state": "completed",
+    "statement": "select raw {\"`travel-sample`.`inventory`.`airline`\" : (select raw count(*) from `travel-sample`.`inventory`.`airline`)[0],\"`travel-sample`.`inventory`.`airport`\" : (select raw count(*) from `travel-sample`.`inventory`.`airport`)[0],\"`travel-sample`.`inventory`.`hotel`\" : (select raw count(*) from `travel-sample`.`inventory`.`hotel`)[0],\"`travel-sample`.`inventory`.`landmark`\" : (select raw count(*) from `travel-sample`.`inventory`.`landmark`)[0],\"`travel-sample`.`inventory`.`route`\" : (select raw count(*) from `travel-sample`.`inventory`.`route`)[0]}",
+    "statementType": "SELECT",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "users": "builtin:Administrator",
+    "~qualifier": "threshold"
+  }
+]

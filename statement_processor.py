@@ -81,13 +81,7 @@ def process_json_file(file_path: str, use_value_for_parameters: bool) -> List[di
             logging.error("Input JSON must be a list of objects")
             return []
             
-        for item in data:
-            # Check if item has the completed_requests field
-            if 'completed_requests' not in item:
-                logging.warning(f"Skipping item missing completed_requests field: {item}")
-                continue
-                
-            completed_request = item['completed_requests']
+        for completed_request in data:
             
             # Check if required fields are present
             if 'statement' not in completed_request:
@@ -96,7 +90,7 @@ def process_json_file(file_path: str, use_value_for_parameters: bool) -> List[di
                 
             # Process the statement and arguments (positional or named)
             statement = completed_request['statement']
-            processed_statement = statement.replace('\n', ' ')
+            processed_statement = statement.replace('\n', ' ').replace('<ud>', '').replace('</ud>', '')
 
             if(use_value_for_parameters):
                 positional_args = completed_request.get('positionalArgs', [])

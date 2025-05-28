@@ -8,8 +8,7 @@ pip install -r requirements.txt
 Input file is the JSON result from :
 
 ```
-SELECT *,
-    DURATION_TO_STR(g_avgServTime) AS avgServTime
+SELECT completed_requests.*
 FROM system:completed_requests
 WHERE UPPER(statement)NOT LIKE 'ADVISE %'
   AND UPPER(statement) NOT LIKE 'INFER %'
