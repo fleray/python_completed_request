@@ -19,7 +19,7 @@ WHERE UPPER(statement)NOT LIKE 'ADVISE %'
 ORDER BY requestTime DESC
 ```
 
-Save result as foo.json
+Save result as travel.json
 
 Then run:
 
