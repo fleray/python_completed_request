@@ -44,7 +44,7 @@ def create_template(query):
     # List pattern: (value1, value2, ...)
     list_value = r'\([^)]+\)'
     
-    operator_pattern = f'([a-zA-Z0-9_.]+)\\s*(=|==|>|<|>=|<=| in )\\s*({simple_value}|{array_value}|{list_value})'
+    operator_pattern = f'([a-zA-Z0-9_.]+)\\s*(>=|<=|==|=|>|<| in )\\s*({simple_value}|{array_value}|{list_value})'
     
     # Find all matches
     matches = list(re.finditer(operator_pattern, query, re.IGNORECASE))
