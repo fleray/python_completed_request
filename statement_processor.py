@@ -14,6 +14,100 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+def create_template(query):
+    """Create a template by replacing values in the query with placeholders."""
+    template = query
+    scalar_value_counter = 1
+    array_value_counter = 1
+    new_template = ""
+    last_end = 0
+    
+    # Match field and operator pattern
+    # This pattern matches:
+    # field = value
+    # field == value
+    # field > value
+    # field < value
+    # field >= value
+    # field <= value
+    # field IN (value1, value2, ...)
+    # field IN [value1, value2, ...]
+    # field IN [ 'val1', 'val2' ]
+    # field IN ['val1','val2']
+    
+    # Simple value pattern: 'value' or "value" or value
+    # For quoted values, can contain spaces: 'my value' or "my value"
+    # For unquoted values, no spaces allowed: myvalue
+    simple_value = r'(?:[\'"][^\'"]*[\'"]|[^\'",\s]+)'
+    # Array pattern: [value1, value2, ...] with optional spaces
+    array_value = r'\[(?:[^\]]*)\]'
+    # List pattern: (value1, value2, ...)
+    list_value = r'\([^)]+\)'
+    
+    operator_pattern = f'([a-zA-Z0-9_.]+)\\s*(=|==|>|<|>=|<=| in )\\s*({simple_value}|{array_value}|{list_value})'
+    
+    # Find all matches
+    matches = list(re.finditer(operator_pattern, query, re.IGNORECASE))
+    
+    # Process matches in order
+    for match in matches:
+        field = match.group(1)
+        operator = match.group(2)
+        value = match.group(3).strip()
+        
+        # Add the text before the match
+        new_template += query[last_end:match.start()]
+        
+        if value.startswith("$"): # already "named" or "positional" parametrized value
+            new_template += f"{field} {operator} {value}"
+            # Update the last end position
+            last_end = match.end()
+            continue
+        
+        # Handle IN operator specially
+        if operator.lower() == ' in ':
+            fix_last_end = True
+            # For IN operator, we need to find the complete array or list
+            if value.startswith('['):
+                if value.endswith(']'):
+                    fix_last_end = False
+                # Find the complete array including all nested content
+                array_match = re.search(array_value, query[match.start():])
+                if array_match:
+                    value = array_match.group(0)
+            elif value.startswith('('):
+                if value.endswith(')'):
+                    fix_last_end = False
+                # Find the complete list including all nested content
+                list_match = re.search(list_value, query[match.start():])
+                if list_match:
+                    value = list_match.group(0)
+            
+            # Add the field, operator and placeholder
+            new_template += f"{field} IN [?, ?, ...]"
+            array_value_counter += 1
+            
+            # Update the last end position
+            last_end = match.end()
+            if fix_last_end:
+                last_end = last_end + len(str(value)) - 2
+        else:
+            # Remove quotes if present
+            if value.startswith(("'", '"')) and value.endswith(("'", '"')):
+                value = value[1:-1]
+            
+            # Add the field, operator and placeholder
+            new_template += f"{field} {operator} ?"
+            scalar_value_counter += 1
+        
+        # Update the last end position
+        last_end = match.end()
+    
+    # Add any remaining text after the last match
+    new_template += query[last_end:]
+    
+    return new_template
+
 def process_positional_args(statement: str, positional_args: List) -> str:
     """
     Process the SQL statement by replacing numbered placeholders ($1, $2, etc.) with values from positional_args.
@@ -138,6 +232,10 @@ def convert_to_seconds(time_str):
     try:
         if isinstance(time_str, (int, float)):
             return float(time_str)
+        if 'us' in time_str:
+            return float(time_str.replace('us', '')) / 1000000
+        if 'µs' in time_str:
+            return float(time_str.replace('µs', '')) / 1000000
         if 'ms' in time_str:
             return float(time_str.replace('ms', '')) / 1000
         if 's' in time_str:
@@ -149,6 +247,28 @@ def convert_to_seconds(time_str):
         return float(time_str)
     except (ValueError, TypeError):
         return 0
+
+
+def convert_to_micro_seconds(time_str):
+    """Convert time string to micro seconds."""
+    if not time_str:
+        return 0
+    try:
+        if isinstance(time_str, (int, float)):
+            return float(time_str)
+        if 'us' in time_str:
+            return float(time_str.replace('us', ''))
+        if 'µs' in time_str:
+            return float(time_str.replace('µs', ''))
+        if 'ms' in time_str:
+            return float(time_str.replace('ms', '')) * 1000
+        if 's' in time_str:
+            return float(time_str.replace('s', '')) * 100000
+        return float(time_str)
+    except (ValueError, TypeError):
+        return 0
+
+
 
 def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str) -> None:
     """
@@ -194,8 +314,8 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     
     # Define headers for aggregated sheet
     agg_headers = [
-        'requestTime', 'statement', 'AVG elapsedTime', 'TOTAL elapsedTime', 'AVG cpuTime', 'AVG resultCount',
-        'AVG resultSize', 'AVG serviceTime', 'TOTAL count'
+        'requestTime', 'statement', 'AVG elapsedTime (s)', 'TOTAL elapsedTime (s)', 'AVG cpuTime (µs)', 'AVG resultCount',
+        'AVG resultSize (bytes)', 'AVG serviceTime (s)', 'TOTAL count'
     ]
     
     # Write headers with styling
@@ -223,7 +343,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         
         # Add values to the group
         statement_groups[statement]['elapsedTime'].append(convert_to_seconds(item.get('elapsedTime', 0)))
-        statement_groups[statement]['cpuTime'].append(convert_to_seconds(item.get('cpuTime', 0)))
+        statement_groups[statement]['cpuTime'].append(convert_to_micro_seconds(item.get('cpuTime', 0)))
         statement_groups[statement]['resultCount'].append(float(item.get('resultCount', 0)))
         statement_groups[statement]['resultSize'].append(float(item.get('resultSize', 0)))
         statement_groups[statement]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
@@ -259,14 +379,77 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         color_scale_rule
     )
     
-    # Adjust column widths for both sheets
-    for ws in [ws_raw, ws_agg]:
-        for col_idx, header in enumerate(ws[1], 1):
-            max_length = len(str(header.value))
-            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
-                if row[0].value:
-                    max_length = max(max_length, len(str(row[0].value)))
-            ws.column_dimensions[chr(64 + col_idx)].width = min(max_length + 2, 100)
+    # Create and setup the third sheet (Normalized Queries Aggregated)
+    if sheet_title == "Param.":
+        ws_normalized = wb.create_sheet(title=f"Normalized Queries (Aggregated)")
+        
+        # Write headers with styling
+        for col_idx, header in enumerate(agg_headers, 1):
+            cell = ws_normalized.cell(row=1, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Group by template and calculate averages
+        template_groups = {}
+        for item in processed_items:
+            statement = item['statement']
+            template = create_template(statement)
+            
+            if template not in template_groups:
+                template_groups[template] = {
+                    'requestTime': item['requestTime'],
+                    'statement': template,
+                    'elapsedTime': [],
+                    'cpuTime': [],
+                    'resultCount': [],
+                    'resultSize': [],
+                    'serviceTime': [],
+                    'count': 0
+                }
+            
+            # Add values to the group
+            template_groups[template]['elapsedTime'].append(convert_to_seconds(item.get('elapsedTime', 0)))
+            template_groups[template]['cpuTime'].append(convert_to_seconds(item.get('cpuTime', 0)))
+            template_groups[template]['resultCount'].append(float(item.get('resultCount', 0)))
+            template_groups[template]['resultSize'].append(float(item.get('resultSize', 0)))
+            template_groups[template]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
+            template_groups[template]['count'] += 1
+        
+        # Sort template_groups by total elapsedTime in descending order
+        sorted_templates = sorted(
+            template_groups.items(),
+            key=lambda x: sum(x[1]['elapsedTime']),
+            reverse=True
+        )
+        
+        # Write aggregated data
+        for row_idx, (_, group) in enumerate(sorted_templates, 2):
+            ws_normalized.cell(row=row_idx, column=1, value=group['requestTime'])
+            ws_normalized.cell(row=row_idx, column=2, value=group['statement'])
+            ws_normalized.cell(row=row_idx, column=3, value=sum(group['elapsedTime']) / len(group['elapsedTime']))
+            ws_normalized.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))
+            ws_normalized.cell(row=row_idx, column=5, value=sum(group['cpuTime']) / len(group['cpuTime']))
+            ws_normalized.cell(row=row_idx, column=6, value=sum(group['resultCount']) / len(group['resultCount']))
+            ws_normalized.cell(row=row_idx, column=7, value=sum(group['resultSize']) / len(group['resultSize']))
+            ws_normalized.cell(row=row_idx, column=8, value=sum(group['serviceTime']) / len(group['serviceTime']))
+            ws_normalized.cell(row=row_idx, column=9, value=group['count'])
+        
+        # Add color gradient to TOTAL elapsedTime column
+        ws_normalized.conditional_formatting.add(
+            f'D2:D{ws_normalized.max_row}',
+            color_scale_rule
+        )
+    
+    # Adjust column widths for all sheets
+    for ws in [ws_raw, ws_agg, ws_normalized if sheet_title == "Param." else None]:
+        if ws:
+            for col_idx, header in enumerate(ws[1], 1):
+                max_length = len(str(header.value))
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
+                    if row[0].value:
+                        max_length = max(max_length, len(str(row[0].value)))
+                ws.column_dimensions[chr(64 + col_idx)].width = min(max_length + 2, 100)
 
 def main():
     # Set up argument parser
