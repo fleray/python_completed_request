@@ -66,18 +66,14 @@ def create_template(query):
         
         # Handle IN operator specially
         if operator.lower() == ' in ':
-            fix_last_end = True
+            orignal_value_str_len = len(str(value))
             # For IN operator, we need to find the complete array or list
             if value.startswith('['):
-                if value.endswith(']'):
-                    fix_last_end = False
                 # Find the complete array including all nested content
                 array_match = re.search(array_value, query[match.start():])
                 if array_match:
                     value = array_match.group(0)
             elif value.startswith('('):
-                if value.endswith(')'):
-                    fix_last_end = False
                 # Find the complete list including all nested content
                 list_match = re.search(list_value, query[match.start():])
                 if list_match:
@@ -89,8 +85,7 @@ def create_template(query):
             
             # Update the last end position
             last_end = match.end()
-            if fix_last_end:
-                last_end = last_end + len(str(value)) - 2
+            last_end = last_end + len(str(value)) - orignal_value_str_len
         else:
             # Remove quotes if present
             if value.startswith(("'", '"')) and value.endswith(("'", '"')):
@@ -100,8 +95,8 @@ def create_template(query):
             new_template += f"{field} {operator} ?"
             scalar_value_counter += 1
         
-        # Update the last end position
-        last_end = match.end()
+            # Update the last end position
+            last_end = match.end()
     
     # Add any remaining text after the last match
     new_template += query[last_end:]
