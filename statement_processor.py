@@ -7,6 +7,7 @@ import argparse
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.formatting.rule import ColorScaleRule
+from openpyxl.comments import Comment
 
 # Configure logging
 logging.basicConfig(
@@ -23,17 +24,19 @@ def create_template(query):
     last_end = 0
     
     # Match field and operator pattern
-    # This pattern matches:
-    # field = value
-    # field == value
-    # field > value
-    # field < value
+    # This pattern matches: 
     # field >= value
     # field <= value
-    # field IN (value1, value2, ...)
+    # field == value
+    # field = value
+    # field > value
+    # field < value
     # field IN [value1, value2, ...]
-    # field IN [ 'val1', 'val2' ]
-    # field IN ['val1','val2']
+    # field IN ['value1', 'value2', ...]
+    # field IN ["value1", "value2", ...]
+    # field IN (value1, value2, ...)
+    # field IN ('value1', 'value2', ...)
+    # field IN ("value1", "value2", ...)
     
     # Simple value pattern: 'value' or "value" or value
     # For quoted values, can contain spaces: 'my value' or "my value"
@@ -265,7 +268,7 @@ def convert_to_micro_seconds(time_str):
 
 
 
-def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str) -> None:
+def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str, sample_statement: bool = False) -> None:
     """
     Create and populate Excel sheets with processed data.
     
@@ -273,6 +276,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         wb: Workbook object
         processed_items: List of processed items
         sheet_title: Title prefix for the sheets (e.g., "Raw" or "Aggregated")
+        sample_statement: Whether to add 1 sample statement per template as note for for Normalize Queries Aggregated tab (only).
     """
     # Define headers in the specified order
     headers = [
@@ -309,7 +313,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     
     # Define headers for aggregated sheet
     agg_headers = [
-        'requestTime', 'statement', 'AVG elapsedTime (s)', 'TOTAL elapsedTime (s)', 'AVG cpuTime (µs)', 'AVG resultCount',
+        'requestTime', 'statement TEMPLATE', 'AVG elapsedTime (s)', 'TOTAL elapsedTime (s)', 'AVG cpuTime (µs)', 'AVG resultCount',
         'AVG resultSize (bytes)', 'AVG serviceTime (s)', 'TOTAL count'
     ]
     
@@ -362,7 +366,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         ws_agg.cell(row=row_idx, column=7, value=sum(group['resultSize']) / len(group['resultSize']))
         ws_agg.cell(row=row_idx, column=8, value=sum(group['serviceTime']) / len(group['serviceTime']))
         ws_agg.cell(row=row_idx, column=9, value=group['count'])
-
+    
     # Add color gradient to TOTAL elapsedTime column
     color_scale_rule = ColorScaleRule(
         start_type='min', start_color='FFFF00',
@@ -387,6 +391,8 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         
         # Group by template and calculate averages
         template_groups = {}
+        template_to_statements = {}  # Dictionary to store statements for each template
+        
         for item in processed_items:
             statement = item['statement']
             template = create_template(statement)
@@ -402,6 +408,9 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
                     'serviceTime': [],
                     'count': 0
                 }
+             
+                # Set 1 example statement for this template
+                template_to_statements[template] = statement
             
             # Add values to the group
             template_groups[template]['elapsedTime'].append(convert_to_seconds(item.get('elapsedTime', 0)))
@@ -422,6 +431,12 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         for row_idx, (_, group) in enumerate(sorted_templates, 2):
             ws_normalized.cell(row=row_idx, column=1, value=group['requestTime'])
             ws_normalized.cell(row=row_idx, column=2, value=group['statement'])
+            cell = ws_normalized.cell(row=row_idx, column=2, value=group['statement'])
+            
+            # Add comment only if sample_statement is True
+            if sample_statement:
+                cell.comment = Comment("Example:\n" + template_to_statements[group['statement']], 'Example', 100, 600)
+            
             ws_normalized.cell(row=row_idx, column=3, value=sum(group['elapsedTime']) / len(group['elapsedTime']))
             ws_normalized.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))
             ws_normalized.cell(row=row_idx, column=5, value=sum(group['cpuTime']) / len(group['cpuTime']))
@@ -450,6 +465,7 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Process computed request statements from a JSON file and generate Excel report to help identify better slow queries.')
     parser.add_argument('input_file', help='Path to the input JSON file (output from computed request)')
+    parser.add_argument('--sample-statement', action='store_true', help='In the output Excel file, for Normalize Queries Aggregated tab only, add 1 sample statement per template as an Excel note')
     args = parser.parse_args()
     
     # Process the JSON file
@@ -468,13 +484,13 @@ def main():
     wb.remove(wb.active)  # Remove the default empty sheet
     
     # Create sheets for parametrized results
-    create_excel_sheets(wb, processed_items, "Param.")
+    create_excel_sheets(wb, processed_items, "Param.", args.sample_statement)
     
     # Process the JSON file with parameter replacement
     processed_items = process_json_file(args.input_file, True)
     
     # Create sheets for valued results
-    create_excel_sheets(wb, processed_items, "Valued")
+    create_excel_sheets(wb, processed_items, "Valued", args.sample_statement)
     
     # Save the workbook
     wb.save(output_file)
