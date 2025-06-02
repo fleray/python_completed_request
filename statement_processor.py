@@ -17,6 +17,12 @@ logging.basicConfig(
 
 N1QL_RESERVED_KEYWORDS = ['ADVISE', 'ALL', 'ALTER', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC', 'AT', 'BEGIN', 'BETWEEN', 'BINARY', 'BOOLEAN', 'BREAK', 'BUCKET', 'BUILD', 'BY', 'CACHE', 'CALL', 'CASE', 'CAST', 'CLUSTER', 'COLLATE', 'COLLECTION', 'COMMIT', 'COMMITTED', 'CONNECT', 'CONTINUE', 'CORRELATED', 'COVER', 'CREATE', 'CURRENT', 'CYCLE', 'DATABASE', 'DATASET', 'DATASTORE', 'DECLARE', 'DECREMENT', 'DEFAULT', 'DELETE', 'DERIVED', 'DESC', 'DESCRIBE', 'DISTINCT', 'DO', 'DROP', 'EACH', 'ELEMENT', 'ELSE', 'END', 'ESCAPE', 'EVERY', 'EXCEPT', 'EXCLUDE', 'EXECUTE', 'EXISTS', 'EXPLAIN', 'FALSE', 'FETCH', 'FILTER', 'FIRST', 'FLATTEN', 'FLATTEN_KEYS', 'FLUSH', 'FOLLOWING', 'FOR', 'FORCE', 'FROM', 'FTS', 'FUNCTION', 'GOLANG', 'GRANT', 'GROUP', 'GROUPS', 'GSI', 'HASH', 'HAVING', 'IF', 'IGNORE', 'ILIKE', 'IN', 'INCLUDE', 'INCREMENT', 'INDEX', 'INFER', 'INLINE', 'INNER', 'INSERT', 'INTERSECT', 'INTO', 'IS', 'ISOLATION', 'JAVASCRIPT', 'JOIN', 'KEY', 'KEYS', 'KEYSPACE', 'KNOWN', 'LANGUAGE', 'LAST', 'LATERAL', 'LEFT', 'LET', 'LETTING', 'LEVEL', 'LIKE', 'LIMIT', 'LSM', 'MAP', 'MAPPING', 'MATCHED', 'MATERIALIZED', 'MAXVALUE', 'MERGE', 'MINVALUE', 'MISSING', 'NAMESPACE', 'NEST', 'NEXT', 'NEXTVAL', 'NL', 'NO', 'NOT', 'NTH_VALUE', 'NULL', 'NULLS', 'NUMBER', 'OBJECT', 'OFFSET', 'ON', 'OPTION', 'OPTIONS', 'OR', 'ORDER', 'OTHERS', 'OUTER', 'OVER', 'PARSE', 'PARTITION', 'PASSWORD', 'PATH', 'POOL', 'PRECEDING', 'PREPARE', 'PREV', 'PREVIOUS', 'PREVVAL', 'PRIMARY', 'PRIVATE', 'PRIVILEGE', 'PROBE', 'PROCEDURE', 'PUBLIC', 'RANGE', 'RAW', 'READ', 'REALM', 'RECURSIVE', 'REDUCE', 'RENAME', 'REPLACE', 'RESPECT', 'RESTART', 'RESTRICT', 'RETURN', 'RETURNING', 'REVOKE', 'RIGHT', 'ROLE', 'ROLLBACK', 'ROW', 'ROWS', 'SATISFIES', 'SAVEPOINT', 'SCHEMA', 'SCOPE', 'SELECT', 'SELF', 'SEQUENCE', 'SET', 'SHOW', 'SOME', 'START', 'STATISTICS', 'STRING', 'SYSTEM', 'THEN', 'TIES', 'TO', 'TRAN', 'TRANSACTION', 'TRIGGER', 'TRUE', 'TRUNCATE', 'UNBOUNDED', 'UNDER', 'UNION', 'UNIQUE', 'UNKNOWN', 'UNNEST', 'UNSET', 'UPDATE', 'UPSERT', 'USE', 'USER', 'USERS', 'USING', 'VALIDATE', 'VALUE', 'VALUED', 'VALUES', 'VECTOR', 'VIA', 'VIEW', 'WHEN', 'WHERE', 'WHILE', 'WINDOW', 'WITH', 'WITHIN', 'WORK', 'XOR']
 
+TIME_DEFINITION = {
+        'elapsedTime': 'When the request arrives at the server, it is placed into a queue until a worker thread picks it up.\n\nElapsed time is the total time taken for the request, that is the time from when the request was received until the results were returned.\n\nElapsed time includes time spent in the queue, whereas execution time does not.',
+        'cpuTime': 'Time spent executing the operator code inside SQL++ query engine, i.e. the actual CPU time consumed by all threads involved.',
+        'serviceTime': 'Time spent waiting for another service, such as index or data.\n- For index scan, it is time spent waiting for GSI/indexer.\n- For fetch, it is time spent waiting on the KV store.\n\nA high servTime for a low number of items processed is an indication that the indexer or KV store is stressed.\n\nA high kernTime means there is a downstream issue in the query plan or the query server having many requests to process (so the scheduled waiting time will be more for CPU time).',
+}
+
 def handle_in_operator(field: str, value: str, query: str, match_start: int, match_end: int) -> tuple:
     """
     Handle IN operator template creation.
@@ -314,6 +320,26 @@ def create_sheet_headers(ws, headers, header_font, header_fill):
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal='center')
+    
+    # Define comment texts for specific headers
+    comment_texts = {
+        'elapsedTime': TIME_DEFINITION['elapsedTime'],
+        'cpuTime': TIME_DEFINITION['cpuTime'],
+        'serviceTime': TIME_DEFINITION['serviceTime'],
+        'AVG elapsedTime (s)': TIME_DEFINITION['elapsedTime'],
+        'AVG cpuTime (µs)': TIME_DEFINITION['cpuTime'],
+        'AVG serviceTime (s)' : TIME_DEFINITION['serviceTime']
+    }
+    
+    # Add comments to specific header cells
+    for col_idx, header in enumerate(headers, 1):
+        
+        if header in comment_texts:
+            comment_text = comment_texts[header]
+            cell = ws.cell(row=1, column=col_idx)
+            # Calculate height based on text length (approximate)
+            height = max(50, int(len(comment_text) * 0.6)) # Adjust multiplier as needed
+            cell.comment = Comment(comment_text, 'Metric Explanation', width=400, height=height)
 
 def calculate_averages(group):
     """Calculate average values for a group of metrics."""
@@ -321,9 +347,9 @@ def calculate_averages(group):
         'elapsedTime': sum(group['elapsedTime']) / len(group['elapsedTime']),
         'totalElapsedTime': sum(group['elapsedTime']),
         'cpuTime': sum(group['cpuTime']) / len(group['cpuTime']),
+        'serviceTime': sum(group['serviceTime']) / len(group['serviceTime']),
         'resultCount': sum(group['resultCount']) / len(group['resultCount']),
         'resultSize': sum(group['resultSize']) / len(group['resultSize']),
-        'serviceTime': sum(group['serviceTime']) / len(group['serviceTime']),
         'count': group['count']
     }
 
@@ -334,9 +360,9 @@ def write_group_data(ws, row_idx, group, averages):
     ws.cell(row=row_idx, column=3, value=averages['elapsedTime'])
     ws.cell(row=row_idx, column=4, value=averages['totalElapsedTime'])
     ws.cell(row=row_idx, column=5, value=averages['cpuTime'])
-    ws.cell(row=row_idx, column=6, value=averages['resultCount'])
-    ws.cell(row=row_idx, column=7, value=averages['resultSize'])
-    ws.cell(row=row_idx, column=8, value=averages['serviceTime'])
+    ws.cell(row=row_idx, column=6, value=averages['serviceTime'])
+    ws.cell(row=row_idx, column=7, value=averages['resultCount'])
+    ws.cell(row=row_idx, column=8, value=averages['resultSize'])
     ws.cell(row=row_idx, column=9, value=averages['count'])
 
 def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str, sample_statement: bool = False) -> None:
@@ -351,19 +377,19 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     """
     # Define headers in the specified order
     headers = [
-        'requestTime', 'statement', 'elapsedTime', 'cpuTime', 'resultCount',
-        'resultSize', 'phaseCounts', 'phaseOperators', 'phaseTimes',
-        'queryContext', 'remoteAddr', 'requestId', 'errorCount', 'errors',
-        'namedArgs', 'n1qlFeatCtrl', 'clientContextID', 'scanConsistency',
-        'serviceTime', 'state', 'statementType', 'useCBO', 'usedMemory',
-        'userAgent', 'users', '~qualifier'
+        'requestTime', 'statement', 'elapsedTime', 'cpuTime', 'serviceTime', 
+        'resultCount', 'resultSize', 'phaseCounts', 'phaseOperators', 
+        'phaseTimes', 'queryContext', 'remoteAddr', 'requestId', 'errorCount',
+        'errors', 'namedArgs', 'n1qlFeatCtrl', 'clientContextID',
+        'scanConsistency', 'state', 'statementType', 'useCBO',
+        'usedMemory', 'userAgent', 'users', '~qualifier'
     ]
     
     # Style for headers
     header_font = Font(bold=True)
     header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
     
-    # Create and setup the first sheet (Raw Results)
+    # Create and setup the "1st sheet" (Raw Results)
     ws_raw = wb.active if sheet_title == "Raw" else wb.create_sheet(title=f"{sheet_title} Queries")
     create_sheet_headers(ws_raw, headers, header_font, header_fill)
     
@@ -373,13 +399,14 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
             value = convert_to_excel_value(item.get(header, ''))
             ws_raw.cell(row=row_idx, column=col_idx, value=value)
     
-    # Create and setup the second sheet (Aggregated Results)
+    # Create and setup the "2nd sheet" (Aggregated Results)
     ws_agg = wb.create_sheet(title=f"{sheet_title} Queries (Aggregated)")
     
     # Define headers for aggregated sheet
     agg_headers = [
-        'requestTime', 'statement TEMPLATE', 'AVG elapsedTime (s)', 'TOTAL elapsedTime (s)', 'AVG cpuTime (µs)', 'AVG resultCount',
-        'AVG resultSize (bytes)', 'AVG serviceTime (s)', 'TOTAL count'
+        'requestTime', 'statement TEMPLATE', 'AVG elapsedTime (s)', 
+        'TOTAL elapsedTime (s)', 'AVG cpuTime (µs)', 'AVG serviceTime (s)', 
+        'AVG resultCount', 'AVG resultSize (bytes)', 'TOTAL count'
     ]
     
     create_sheet_headers(ws_agg, agg_headers, header_font, header_fill)
@@ -394,18 +421,18 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
                 'statement': statement,
                 'elapsedTime': [],
                 'cpuTime': [],
+                'serviceTime': [],
                 'resultCount': [],
                 'resultSize': [],
-                'serviceTime': [],
                 'count': 0
             }
         
         # Add values to the group
         statement_groups[statement]['elapsedTime'].append(convert_to_seconds(item.get('elapsedTime', 0)))
         statement_groups[statement]['cpuTime'].append(convert_to_micro_seconds(item.get('cpuTime', 0)))
+        statement_groups[statement]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
         statement_groups[statement]['resultCount'].append(float(item.get('resultCount', 0)))
         statement_groups[statement]['resultSize'].append(float(item.get('resultSize', 0)))
-        statement_groups[statement]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
         statement_groups[statement]['count'] += 1
     
     # Sort statement_groups by total elapsedTime in descending order
@@ -431,7 +458,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         color_scale_rule
     )
     
-    # Create and setup the third sheet (Normalized Queries Aggregated)
+    # Create and setup the "3rd sheet" (Normalized Queries Aggregated)
     if sheet_title == "Param.":
         ws_normalized = wb.create_sheet(title=f"Normalized Queries (Aggregated)")
         create_sheet_headers(ws_normalized, agg_headers, header_font, header_fill)
@@ -450,9 +477,9 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
                     'statement': template,
                     'elapsedTime': [],
                     'cpuTime': [],
+                    'serviceTime': [],
                     'resultCount': [],
                     'resultSize': [],
-                    'serviceTime': [],
                     'count': 0
                 }
                 # Set 1 example statement for this template
@@ -461,9 +488,9 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
             # Add values to the group
             template_groups[template]['elapsedTime'].append(convert_to_seconds(item.get('elapsedTime', 0)))
             template_groups[template]['cpuTime'].append(convert_to_seconds(item.get('cpuTime', 0)))
+            template_groups[template]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
             template_groups[template]['resultCount'].append(float(item.get('resultCount', 0)))
             template_groups[template]['resultSize'].append(float(item.get('resultSize', 0)))
-            template_groups[template]['serviceTime'].append(convert_to_seconds(item.get('serviceTime', 0)))
             template_groups[template]['count'] += 1
         
         # Sort template_groups by total elapsedTime in descending order
@@ -481,7 +508,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
             # Add comment only if sample_statement is True
             if sample_statement:
                 cell = ws_normalized.cell(row=row_idx, column=2)
-                height = max(100, 0.3 * len(template_to_statements[group['statement']]))
+                height = max(100, int(len(template_to_statements[group['statement']]) * 0.3)) # Adjust multiplier as needed
                 cell.comment = Comment("Example:\n" + template_to_statements[group['statement']], 'Example', height, 600)
         
         # Add color gradient to TOTAL elapsedTime column
