@@ -481,7 +481,8 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
             # Add comment only if sample_statement is True
             if sample_statement:
                 cell = ws_normalized.cell(row=row_idx, column=2)
-                cell.comment = Comment("Example:\n" + template_to_statements[group['statement']], 'Example', 100, 600)
+                height = max(100, 0.3 * len(template_to_statements[group['statement']]))
+                cell.comment = Comment("Example:\n" + template_to_statements[group['statement']], 'Example', height, 600)
         
         # Add color gradient to TOTAL elapsedTime column
         ws_normalized.conditional_formatting.add(
