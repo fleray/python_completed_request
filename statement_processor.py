@@ -15,28 +15,98 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-def create_template(query):
-    """Create a template by replacing values in the query with placeholders."""
-    template = query
-    scalar_value_counter = 1
-    array_value_counter = 1
+N1QL_RESERVED_KEYWORDS = ['ADVISE', 'ALL', 'ALTER', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC', 'AT', 'BEGIN', 'BETWEEN', 'BINARY', 'BOOLEAN', 'BREAK', 'BUCKET', 'BUILD', 'BY', 'CACHE', 'CALL', 'CASE', 'CAST', 'CLUSTER', 'COLLATE', 'COLLECTION', 'COMMIT', 'COMMITTED', 'CONNECT', 'CONTINUE', 'CORRELATED', 'COVER', 'CREATE', 'CURRENT', 'CYCLE', 'DATABASE', 'DATASET', 'DATASTORE', 'DECLARE', 'DECREMENT', 'DEFAULT', 'DELETE', 'DERIVED', 'DESC', 'DESCRIBE', 'DISTINCT', 'DO', 'DROP', 'EACH', 'ELEMENT', 'ELSE', 'END', 'ESCAPE', 'EVERY', 'EXCEPT', 'EXCLUDE', 'EXECUTE', 'EXISTS', 'EXPLAIN', 'FALSE', 'FETCH', 'FILTER', 'FIRST', 'FLATTEN', 'FLATTEN_KEYS', 'FLUSH', 'FOLLOWING', 'FOR', 'FORCE', 'FROM', 'FTS', 'FUNCTION', 'GOLANG', 'GRANT', 'GROUP', 'GROUPS', 'GSI', 'HASH', 'HAVING', 'IF', 'IGNORE', 'ILIKE', 'IN', 'INCLUDE', 'INCREMENT', 'INDEX', 'INFER', 'INLINE', 'INNER', 'INSERT', 'INTERSECT', 'INTO', 'IS', 'ISOLATION', 'JAVASCRIPT', 'JOIN', 'KEY', 'KEYS', 'KEYSPACE', 'KNOWN', 'LANGUAGE', 'LAST', 'LATERAL', 'LEFT', 'LET', 'LETTING', 'LEVEL', 'LIKE', 'LIMIT', 'LSM', 'MAP', 'MAPPING', 'MATCHED', 'MATERIALIZED', 'MAXVALUE', 'MERGE', 'MINVALUE', 'MISSING', 'NAMESPACE', 'NEST', 'NEXT', 'NEXTVAL', 'NL', 'NO', 'NOT', 'NTH_VALUE', 'NULL', 'NULLS', 'NUMBER', 'OBJECT', 'OFFSET', 'ON', 'OPTION', 'OPTIONS', 'OR', 'ORDER', 'OTHERS', 'OUTER', 'OVER', 'PARSE', 'PARTITION', 'PASSWORD', 'PATH', 'POOL', 'PRECEDING', 'PREPARE', 'PREV', 'PREVIOUS', 'PREVVAL', 'PRIMARY', 'PRIVATE', 'PRIVILEGE', 'PROBE', 'PROCEDURE', 'PUBLIC', 'RANGE', 'RAW', 'READ', 'REALM', 'RECURSIVE', 'REDUCE', 'RENAME', 'REPLACE', 'RESPECT', 'RESTART', 'RESTRICT', 'RETURN', 'RETURNING', 'REVOKE', 'RIGHT', 'ROLE', 'ROLLBACK', 'ROW', 'ROWS', 'SATISFIES', 'SAVEPOINT', 'SCHEMA', 'SCOPE', 'SELECT', 'SELF', 'SEQUENCE', 'SET', 'SHOW', 'SOME', 'START', 'STATISTICS', 'STRING', 'SYSTEM', 'THEN', 'TIES', 'TO', 'TRAN', 'TRANSACTION', 'TRIGGER', 'TRUE', 'TRUNCATE', 'UNBOUNDED', 'UNDER', 'UNION', 'UNIQUE', 'UNKNOWN', 'UNNEST', 'UNSET', 'UPDATE', 'UPSERT', 'USE', 'USER', 'USERS', 'USING', 'VALIDATE', 'VALUE', 'VALUED', 'VALUES', 'VECTOR', 'VIA', 'VIEW', 'WHEN', 'WHERE', 'WHILE', 'WINDOW', 'WITH', 'WITHIN', 'WORK', 'XOR']
+
+def handle_in_operator(field: str, value: str, query: str, match_start: int, match_end: int) -> tuple:
+    """
+    Handle IN operator template creation.
+    
+    Args:
+        field: The field name
+        value: The value to process
+        query: The original query
+        match_start: Start position of the match
+        match_end: End position of the match
+        
+    Returns:
+        Tuple of (template_part, new_end_position)
+    """
+    original_value_str_len = len(str(value))
+    
+    # For IN operator, we need to find the complete array or list
+    if value.startswith('['):
+        # Find the complete array including all nested content
+        array_match = re.search(r'\[(?:[^\]]*)\]', query[match_start:])
+        if array_match:
+            value = array_match.group(0)
+
+        # Add the field, operator and placeholder
+        template_part = f"{field} IN [?, ?, ...]"
+        new_end = match_end + len(str(value)) - original_value_str_len
+    elif value.startswith('('):
+        # Find the complete list including all nested content
+        list_match = re.search(r'\([^)]+\)', query[match_start:])
+        if list_match:
+            value = list_match.group(0)
+    
+        # Add the field, operator and placeholder
+        template_part = f"{field} IN [?, ?, ...]"
+        new_end = match_end + len(str(value)) - original_value_str_len
+    else:
+        # last case : value represents array, like schedule in : "AND ANY v IN schedule ..."
+        # do nothing : ignore
+        template_part = f"{field} IN {value}"
+        new_end = match_end
+    
+    return template_part, new_end
+
+def handle_simple_operator(field: str, operator: str, value: str, match_end: int) -> tuple:
+    """
+    Handle simple operator template creation.
+    
+    Args:
+        field: The field name
+        operator: The operator
+        value: The value to process
+        
+    Returns:
+        Template part for the simple operator
+    """
+
+    new_end = match_end
+    original_value = value
+
+    # Remove parenthesis or quotes if present
+    if value.startswith("("):
+        value = value[1:]
+        if value in N1QL_RESERVED_KEYWORDS:
+            # Do nothing
+            return f"{field} {operator} {original_value}", new_end
+        new_end +=  1
+    if value.endswith(")"):
+        value = value[:-1]
+        if value in N1QL_RESERVED_KEYWORDS:
+            # Do nothing
+            return f"{field} {operator} {original_value}", new_end
+        new_end -=  1
+    if value.startswith(("'", '"')) and value.endswith(("'", '"')):
+        value = value[1:-1]
+    
+    # Add the field, operator and placeholder
+    return f"{field} {operator} ?", new_end
+
+def create_template(query: str) -> str:
+    """
+    Create a template by replacing values in the query with placeholders.
+    
+    Args:
+        query: The SQL query to template
+        
+    Returns:
+        The templated query
+    """
     new_template = ""
     last_end = 0
-    
-    # Match field and operator pattern
-    # This pattern matches: 
-    # field >= value
-    # field <= value
-    # field == value
-    # field = value
-    # field > value
-    # field < value
-    # field IN [value1, value2, ...]
-    # field IN ['value1', 'value2', ...]
-    # field IN ["value1", "value2", ...]
-    # field IN (value1, value2, ...)
-    # field IN ('value1', 'value2', ...)
-    # field IN ("value1", "value2", ...)
     
     # Simple value pattern: 'value' or "value" or value
     # For quoted values, can contain spaces: 'my value' or "my value"
@@ -44,10 +114,8 @@ def create_template(query):
     simple_value = r'(?:[\'"][^\'"]*[\'"]|[^\'",\s]+)'
     # Array pattern: [value1, value2, ...] with optional spaces
     array_value = r'\[(?:[^\]]*)\]'
-    # List pattern: (value1, value2, ...)
-    list_value = r'\([^)]+\)'
     
-    operator_pattern = f'([a-zA-Z0-9_.]+)\\s*(>=|<=|==|=|>|<| in )\\s*({simple_value}|{array_value}|{list_value})'
+    operator_pattern = f'([a-zA-Z0-9_.]+)\\s*(>=|<=|==|=|>|<| in | like )\\s*({simple_value}|{array_value})'
     
     # Find all matches
     matches = list(re.finditer(operator_pattern, query, re.IGNORECASE))
@@ -63,43 +131,16 @@ def create_template(query):
         
         if value.startswith("$"): # already "named" or "positional" parametrized value
             new_template += f"{field} {operator} {value}"
-            # Update the last end position
             last_end = match.end()
             continue
         
-        # Handle IN operator specially
+        # Handle different operators
         if operator.lower() == ' in ':
-            orignal_value_str_len = len(str(value))
-            # For IN operator, we need to find the complete array or list
-            if value.startswith('['):
-                # Find the complete array including all nested content
-                array_match = re.search(array_value, query[match.start():])
-                if array_match:
-                    value = array_match.group(0)
-            elif value.startswith('('):
-                # Find the complete list including all nested content
-                list_match = re.search(list_value, query[match.start():])
-                if list_match:
-                    value = list_match.group(0)
-            
-            # Add the field, operator and placeholder
-            new_template += f"{field} IN [?, ?, ...]"
-            array_value_counter += 1
-            
-            # Update the last end position
-            last_end = match.end()
-            last_end = last_end + len(str(value)) - orignal_value_str_len
+            template_part, last_end = handle_in_operator(field, value, query, match.start(), match.end())
+            new_template += template_part
         else:
-            # Remove quotes if present
-            if value.startswith(("'", '"')) and value.endswith(("'", '"')):
-                value = value[1:-1]
-            
-            # Add the field, operator and placeholder
-            new_template += f"{field} {operator} ?"
-            scalar_value_counter += 1
-        
-            # Update the last end position
-            last_end = match.end()
+            template_part, last_end = handle_simple_operator(field, operator, value, match.end())
+            new_template += template_part
     
     # Add any remaining text after the last match
     new_template += query[last_end:]
@@ -266,7 +307,37 @@ def convert_to_micro_seconds(time_str):
     except (ValueError, TypeError):
         return 0
 
+def create_sheet_headers(ws, headers, header_font, header_fill):
+    """Create and style headers for a worksheet."""
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
 
+def calculate_averages(group):
+    """Calculate average values for a group of metrics."""
+    return {
+        'elapsedTime': sum(group['elapsedTime']) / len(group['elapsedTime']),
+        'totalElapsedTime': sum(group['elapsedTime']),
+        'cpuTime': sum(group['cpuTime']) / len(group['cpuTime']),
+        'resultCount': sum(group['resultCount']) / len(group['resultCount']),
+        'resultSize': sum(group['resultSize']) / len(group['resultSize']),
+        'serviceTime': sum(group['serviceTime']) / len(group['serviceTime']),
+        'count': group['count']
+    }
+
+def write_group_data(ws, row_idx, group, averages):
+    """Write group data to worksheet."""
+    ws.cell(row=row_idx, column=1, value=group['requestTime'])
+    ws.cell(row=row_idx, column=2, value=group['statement'])
+    ws.cell(row=row_idx, column=3, value=averages['elapsedTime'])
+    ws.cell(row=row_idx, column=4, value=averages['totalElapsedTime'])
+    ws.cell(row=row_idx, column=5, value=averages['cpuTime'])
+    ws.cell(row=row_idx, column=6, value=averages['resultCount'])
+    ws.cell(row=row_idx, column=7, value=averages['resultSize'])
+    ws.cell(row=row_idx, column=8, value=averages['serviceTime'])
+    ws.cell(row=row_idx, column=9, value=averages['count'])
 
 def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: str, sample_statement: bool = False) -> None:
     """
@@ -294,13 +365,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     
     # Create and setup the first sheet (Raw Results)
     ws_raw = wb.active if sheet_title == "Raw" else wb.create_sheet(title=f"{sheet_title} Queries")
-    
-    # Write headers with styling
-    for col_idx, header in enumerate(headers, 1):
-        cell = ws_raw.cell(row=1, column=col_idx, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
+    create_sheet_headers(ws_raw, headers, header_font, header_fill)
     
     # Write data rows
     for row_idx, item in enumerate(processed_items, 2):
@@ -317,12 +382,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         'AVG resultSize (bytes)', 'AVG serviceTime (s)', 'TOTAL count'
     ]
     
-    # Write headers with styling
-    for col_idx, header in enumerate(agg_headers, 1):
-        cell = ws_agg.cell(row=1, column=col_idx, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
+    create_sheet_headers(ws_agg, agg_headers, header_font, header_fill)
     
     # Group by statement and calculate averages
     statement_groups = {}
@@ -357,15 +417,8 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     
     # Write aggregated data
     for row_idx, (_, group) in enumerate(sorted_groups, 2):
-        ws_agg.cell(row=row_idx, column=1, value=group['requestTime'])
-        ws_agg.cell(row=row_idx, column=2, value=group['statement'])
-        ws_agg.cell(row=row_idx, column=3, value=sum(group['elapsedTime']) / len(group['elapsedTime']))
-        ws_agg.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))
-        ws_agg.cell(row=row_idx, column=5, value=sum(group['cpuTime']) / len(group['cpuTime']))
-        ws_agg.cell(row=row_idx, column=6, value=sum(group['resultCount']) / len(group['resultCount']))
-        ws_agg.cell(row=row_idx, column=7, value=sum(group['resultSize']) / len(group['resultSize']))
-        ws_agg.cell(row=row_idx, column=8, value=sum(group['serviceTime']) / len(group['serviceTime']))
-        ws_agg.cell(row=row_idx, column=9, value=group['count'])
+        averages = calculate_averages(group)
+        write_group_data(ws_agg, row_idx, group, averages)
     
     # Add color gradient to TOTAL elapsedTime column
     color_scale_rule = ColorScaleRule(
@@ -381,13 +434,7 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     # Create and setup the third sheet (Normalized Queries Aggregated)
     if sheet_title == "Param.":
         ws_normalized = wb.create_sheet(title=f"Normalized Queries (Aggregated)")
-        
-        # Write headers with styling
-        for col_idx, header in enumerate(agg_headers, 1):
-            cell = ws_normalized.cell(row=1, column=col_idx, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal='center')
+        create_sheet_headers(ws_normalized, agg_headers, header_font, header_fill)
         
         # Group by template and calculate averages
         template_groups = {}
@@ -408,7 +455,6 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
                     'serviceTime': [],
                     'count': 0
                 }
-             
                 # Set 1 example statement for this template
                 template_to_statements[template] = statement
             
@@ -429,21 +475,13 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
         
         # Write aggregated data
         for row_idx, (_, group) in enumerate(sorted_templates, 2):
-            ws_normalized.cell(row=row_idx, column=1, value=group['requestTime'])
-            ws_normalized.cell(row=row_idx, column=2, value=group['statement'])
-            cell = ws_normalized.cell(row=row_idx, column=2, value=group['statement'])
+            averages = calculate_averages(group)
+            write_group_data(ws_normalized, row_idx, group, averages)
             
             # Add comment only if sample_statement is True
             if sample_statement:
+                cell = ws_normalized.cell(row=row_idx, column=2)
                 cell.comment = Comment("Example:\n" + template_to_statements[group['statement']], 'Example', 100, 600)
-            
-            ws_normalized.cell(row=row_idx, column=3, value=sum(group['elapsedTime']) / len(group['elapsedTime']))
-            ws_normalized.cell(row=row_idx, column=4, value=sum(group['elapsedTime']))
-            ws_normalized.cell(row=row_idx, column=5, value=sum(group['cpuTime']) / len(group['cpuTime']))
-            ws_normalized.cell(row=row_idx, column=6, value=sum(group['resultCount']) / len(group['resultCount']))
-            ws_normalized.cell(row=row_idx, column=7, value=sum(group['resultSize']) / len(group['resultSize']))
-            ws_normalized.cell(row=row_idx, column=8, value=sum(group['serviceTime']) / len(group['serviceTime']))
-            ws_normalized.cell(row=row_idx, column=9, value=group['count'])
         
         # Add color gradient to TOTAL elapsedTime column
         ws_normalized.conditional_formatting.add(
