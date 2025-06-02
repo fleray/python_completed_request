@@ -378,10 +378,10 @@ def create_excel_sheets(wb: Workbook, processed_items: List[dict], sheet_title: 
     # Define headers in the specified order
     headers = [
         'requestTime', 'statement', 'elapsedTime', 'cpuTime', 'serviceTime', 
-        'resultCount', 'resultSize', 'phaseCounts', 'phaseOperators', 
-        'phaseTimes', 'queryContext', 'remoteAddr', 'requestId', 'errorCount',
-        'errors', 'namedArgs', 'n1qlFeatCtrl', 'clientContextID',
-        'scanConsistency', 'state', 'statementType', 'useCBO',
+        'resultCount', 'resultSize', 'scanConsistency', 'state', 
+        'phaseCounts', 'phaseOperators', 'phaseTimes', 'queryContext', 
+        'remoteAddr', 'requestId', 'errorCount','errors', 'namedArgs', 
+        'n1qlFeatCtrl', 'clientContextID', 'statementType', 'useCBO',
         'usedMemory', 'userAgent', 'users', '~qualifier'
     ]
     
