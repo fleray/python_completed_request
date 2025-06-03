@@ -29,15 +29,15 @@ python statement_processor.py <YOUR_FILE>.json
 
 The result is stored as Excel sheet in "output_<YOUR_FILE>.xlsx" file containing 5 tabs:
 
- - TAB 1: Param. Queries - raw queries from completed_requeest: if "Named" or "Positional" parameters exist, they are left "as is"
+ - TAB 1: Param. Queries - raw queries from completed_request: if "Named" or "Positional" parameters exist, they are left "as is"
 
- - TAB 2: Param. Queries (Aggregated) - same as previous but exactly queries are agreggated
+ - TAB 2: Param. Queries (Aggregated) - same as previous (TAB 1) but agreggated
 
- - TAB 3: Normalized Queries (Aggregated) - in this tab <b>all values</b>  get "parametrized": this is to easily group Queries by the "most generic template statement" (i.e. not taking into account any "value").
+ - TAB 3: Normalized Queries (Aggregated) - in this tab <b>all values</b>  get "parametrized": this is to easily group Queries by the "most generic template statement" (i.e. not taking into account any "value"). 
 
  - TAB 4: Valued Queries - each parameter is replaced by the associated "Named" or "Positional" parameter value
 
- - TAB 5: Valued Queries (Aggregated) - same as previous but Aggregated
+ - TAB 5: Valued Queries (Aggregated) - same as previous (TAB 4) but Aggregated
 
 
 To conclude:
