@@ -19,7 +19,7 @@ WHERE UPPER(statement)NOT LIKE 'ADVISE %'
 ORDER BY requestTime DESC
 ```
 
-Save result as travel.json
+Save result as <YOUR_FILE>.json
 
 Then run:
 
@@ -27,8 +27,21 @@ Then run:
 python statement_processor.py <YOUR_FILE>.json
 ```
 
-The result is stored in "output_<YOUR_FILE>.xlsx" file containing 4 tabs:
- - Param. Queries
- - Param. Queries (Aggregated)
- - Valued Queries - the parameters are replaced by the associated "Named" or "Positional" parameter value
- - Valued Queries (Aggregated)
+The result is stored as Excel sheet in "output_<YOUR_FILE>.xlsx" file containing 5 tabs:
+
+ - TAB 1: Param. Queries - raw queries from completed_requeest: if "Named" or "Positional" parameters exist, they are left "as is"
+
+ - TAB 2: Param. Queries (Aggregated) - same as previous but exactly queries are agreggated
+
+ - TAB 3: Normalized Queries (Aggregated) - in this tab <b>all values</b>  get "parametrized": this is to easily group Queries by the "most generic template statement" (i.e. not taking into account any "value").
+
+ - TAB 4: Valued Queries - each parameter is replaced by the associated "Named" or "Positional" parameter value
+
+ - TAB 5: Valued Queries (Aggregated) - same as previous but Aggregated
+
+
+To conclude:
+
+To my opinion, TAB 3 is the most useful because it gathers all query statements, regardless of their original values.
+
+TAB 4 can be used in case you want to populate a query statement file for [n1qlback](https://docs.couchbase.com/sdk-api/couchbase-c-client-3.3.16/md_doc_2cbc-n1qlback.html) command line tool.
